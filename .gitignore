@@ -1,0 +1,29 @@
+# Base de datos PostgreSQL
+postgres/
+
+# Entornos virtuales
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Odoo
+*.log
+*.pyc
+
+# VS Code
+.vscode/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Variables de entorno
+.env
+.env.*
+
+# Archivos temporales
+*.tmp
+*.swp
