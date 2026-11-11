@@ -34,3 +34,8 @@ class CursoOdoo(models.Model):
     "res.partner",
     string="Profesor",
 )
+    tema_ids = fields.One2many(
+    "curso.odoo.tema",
+    "curso_id",
+    string="Temas",
+)

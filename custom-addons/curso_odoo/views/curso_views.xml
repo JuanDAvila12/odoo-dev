@@ -37,7 +37,17 @@
 <group>
     <field name="descripcion"/>
 </group>
-
+<notebook>
+    <page string="Temas">
+        <field name="tema_ids">
+            <list editable="bottom">
+                <field name="orden"/>
+                <field name="name"/>
+                <field name="descripcion"/>
+            </list>
+        </field>
+    </page>
+</notebook>
                 </sheet>
             </form>
         </field>

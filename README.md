@@ -1,436 +1,293 @@
-# Odoo 19 Development Environment
+# Odoo 19 — Entorno de desarrollo
 
-Entorno de desarrollo para **Odoo 19** utilizando Docker, PostgreSQL y módulos personalizados.
+Entorno local para aprender, desarrollar y probar módulos personalizados de **Odoo 19** con Docker Compose y PostgreSQL.
 
-Repositorio:
+**Repositorio:** <https://github.com/JuanDAvila12/odoo-dev>
 
-**https://github.com/JuanDAvila12/odoo-dev**
+> Este repositorio es un laboratorio de desarrollo. No es una configuración lista para producción.
 
----
+## Estado del laboratorio
 
-## 📋 Descripción
+| Componente | Configuración |
+|---|---|
+| ERP | Odoo 19 (`odoo:19`) |
+| Base de datos | PostgreSQL 15 (`postgres:15`) |
+| Orquestación | Docker Compose |
+| Editor recomendado | Visual Studio Code |
+| Base de desarrollo utilizada | `Odo-dev` |
+| Puerto web de Odoo | `8069` |
+| Puerto PostgreSQL dentro de Docker | `5432` |
+| Puerto PostgreSQL desde Windows | `55432` recomendado; confirmar con `docker ps` |
 
-Este proyecto contiene un entorno local para desarrollar y probar módulos personalizados de Odoo 19 sin modificar directamente el código fuente de Odoo.
-
-El objetivo es disponer de un laboratorio de desarrollo reproducible para aprender Odoo y construir funcionalidades empresariales personalizadas.
-
----
-
-## 🏗️ Arquitectura
+### Arquitectura
 
 ```text
 Windows
-│
 ├── Visual Studio Code
-│
+├── DBeaver / pgAdmin (cliente de PostgreSQL)
 └── Docker Desktop
-    │
-    ├── Odoo 19
-    │   └── Puerto 8069
-    │
-    └── PostgreSQL 15
-        └── Base de datos Odoo
+    ├── odoo19
+    │   ├── Odoo 19
+    │   ├── puerto web 8069
+    │   └── /mnt/extra-addons  <── ./custom-addons
+    └── odoo19-postgres
+        └── PostgreSQL 15
+            ├── puerto interno 5432
+            └── puerto publicado local 55432 (si está configurado)
 ```
 
-### Servicios
+Odoo se conecta a PostgreSQL mediante el nombre de servicio de Compose `db` y el puerto interno `5432`. Las herramientas de Windows, como DBeaver, se conectan al puerto publicado en el host (recomendado: `55432`).
 
-| Servicio      | Tecnología    | Puerto |
-| ------------- | ------------- | -----: |
-| Odoo          | Odoo 19       |   8069 |
-| Base de datos | PostgreSQL 15 |   5432 |
+## Requisitos
 
----
+- Windows 10/11
+- Docker Desktop con Docker Compose v2
+- Git
+- Visual Studio Code
+- DBeaver Community o pgAdmin 4 (opcional, para explorar PostgreSQL gráficamente)
 
-## 📁 Estructura del proyecto
+## Estructura del proyecto
 
 ```text
 odoo-dev/
-│
 ├── README.md
 ├── .gitignore
 ├── docker-compose.yml
-│
-├── config/
-│
-├── custom-addons/
+├── config/                 # Configuración opcional de Odoo
+├── custom-addons/          # Módulos propios
 │   └── curso_odoo/
 │       ├── __init__.py
 │       ├── __manifest__.py
-│       │
 │       ├── models/
-│       │   ├── __init__.py
-│       │   └── curso.py
-│       │
 │       ├── views/
-│       │   └── curso_views.xml
-│       │
 │       └── security/
-│           └── ir.model.access.csv
-│
-└── postgres/
+├── docs/
+│   └── images/             # Diagramas e imágenes de las lecciones
+└── postgres/               # Datos locales; NO se versiona
 ```
 
-> La carpeta `postgres/` contiene los datos locales de PostgreSQL y está excluida del repositorio mediante `.gitignore`.
+La carpeta `postgres/` contiene datos persistentes de PostgreSQL y debe estar excluida de Git mediante `.gitignore`. No se debe borrar para resolver errores de puertos o reinicios.
 
----
+## Puertos y conexión a PostgreSQL desde Windows
 
-## 🐳 Requisitos
+El servicio `db` de `docker-compose.yml` debe publicar PostgreSQL únicamente en la interfaz local. Configuración recomendada:
 
-Para utilizar este entorno se requiere:
-
-* Windows 10/11
-* Docker Desktop
-* Git
-* Visual Studio Code
-
----
-
-## 🚀 Instalación
-
-### 1. Clonar el repositorio
-
-```bash
-git clone https://github.com/JuanDAvila12/odoo-dev.git
-cd odoo-dev
+```yaml
+  db:
+    image: postgres:15
+    container_name: odoo19-postgres
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+    restart: unless-stopped
 ```
 
-### 2. Levantar Odoo y PostgreSQL
+Si Windows no permite usar el puerto `55432`, seleccionar otro puerto local disponible y cambiar solamente el número de la izquierda. Por ejemplo, `127.0.0.1:PUERTO_LOCAL:5432`. El puerto interno `5432` no cambia.
 
-```bash
-docker compose up -d
-```
+Comprobar el puerto efectivo:
 
-### 3. Comprobar los contenedores
-
-```bash
+```powershell
 docker ps
 ```
 
-Deben aparecer:
+Debe aparecer una asignación similar a:
 
 ```text
-odoo19
-odoo19-postgres
+127.0.0.1:55432->5432/tcp
 ```
 
-### 4. Acceder a Odoo
+### Parámetros para DBeaver / pgAdmin
 
-Abrir en el navegador:
+| Campo | Valor |
+|---|---|
+| Motor | PostgreSQL |
+| Host | `127.0.0.1` |
+| Puerto | `55432` (o el puerto local realmente publicado) |
+| Base de datos | `Odo-dev` |
+| Usuario | `odoo` |
+| Contraseña | La configurada localmente en `docker-compose.yml` |
 
-```text
-http://localhost:8069
-```
+Las credenciales simples del laboratorio son solo para desarrollo local. No reutilizarlas en un servidor ni publicar credenciales reales.
 
----
+## Arranque y operación
 
-## 🗄️ Base de datos
+Desde la carpeta que contiene `docker-compose.yml`:
 
-El entorno utiliza:
+```powershell
+# Validar el Compose
+docker compose config
 
-```text
-PostgreSQL 15
-```
-
-Configuración del contenedor:
-
-```text
-Host: db
-Puerto: 5432
-Usuario: odoo
-Contraseña: odoo
-```
-
-La base de datos de desarrollo utilizada actualmente es:
-
-```text
-Odo-dev
-```
-
-> Las credenciales anteriores son únicamente para el entorno local de desarrollo. No deben utilizarse en producción.
-
----
-
-## 🧩 Desarrollo de módulos
-
-Los módulos personalizados se almacenan en:
-
-```text
-custom-addons/
-```
-
-y se montan dentro del contenedor de Odoo en:
-
-```text
-/mnt/extra-addons
-```
-
-Ejemplo:
-
-```text
-custom-addons/
-└── mi_modulo/
-    ├── __init__.py
-    ├── __manifest__.py
-    ├── models/
-    ├── views/
-    └── security/
-```
-
----
-
-# 📚 Módulo actual: curso_odoo
-
-El primer módulo desarrollado dentro de este proyecto.
-
-## Modelo
-
-```text
-curso.odoo
-```
-
-## Campos actuales
-
-```text
-name
-descripcion
-activo
-edad
-precio
-fecha_inicio
-profesor_id
-```
-
-## Relaciones
-
-El campo:
-
-```text
-profesor_id
-```
-
-es una relación `Many2one` hacia:
-
-```text
-res.partner
-```
-
-Esto permite seleccionar un contacto de Odoo como profesor del curso.
-
-## Funcionalidades actuales
-
-* Modelo personalizado
-* Campos básicos
-* Campo booleano
-* Fecha
-* Entero
-* Decimal
-* Relación `Many2one`
-* Vista de lista
-* Vista de formulario
-* Acción de ventana
-* Menú personalizado
-* Permisos de acceso
-
----
-
-## 🔄 Flujo de desarrollo
-
-El flujo utilizado en este proyecto es:
-
-```text
-Modificar código
-      ↓
-Guardar cambios
-      ↓
-Reiniciar Odoo
-      ↓
-Actualizar módulo
-      ↓
-Probar en Odoo
-      ↓
-Corregir errores
-      ↓
-Git commit
-      ↓
-Git push
-```
-
----
-
-## 🔧 Comandos útiles
-
-### Iniciar Odoo
-
-```bash
+# Iniciar servicios
 docker compose up -d
-```
 
-### Detener los servicios
+# Ver contenedores y puertos
+docker ps
 
-```bash
+# Ver logs de Odoo
+docker logs odoo19 --tail 100
+
+# Ver logs de PostgreSQL
+docker logs odoo19-postgres --tail 100
+
+# Reiniciar únicamente Odoo
+docker compose restart odoo
+
+# Detener y retirar contenedores/red (conserva la carpeta postgres)
 docker compose down
 ```
 
-### Reiniciar Odoo
+**No utilizar `docker compose down -v` como comando rutinario.** Antes de cualquier operación destructiva, realizar un respaldo de la base de datos y confirmar qué se desea eliminar.
 
-```bash
-docker compose restart odoo
-```
+Acceso web: <http://localhost:8069>
 
-### Ver contenedores
+## Módulo de práctica: `curso_odoo`
 
-```bash
-docker ps
-```
+El curso utiliza un módulo propio para practicar conceptos fundamentales de Odoo.
 
-### Ver logs de Odoo
+### Modelo principal: `curso.odoo`
 
-```bash
-docker logs odoo19 --tail 100
-```
+Campos trabajados durante las lecciones:
 
-### Ver logs en tiempo real
+| Campo técnico | Tipo | Propósito |
+|---|---|---|
+| `name` | `Char` | Nombre del curso |
+| `descripcion` | `Text` | Descripción |
+| `activo` | `Boolean` | Estado activo/inactivo |
+| `edad` | `Integer` | Campo entero de práctica |
+| `precio` | `Float` | Campo decimal de práctica |
+| `fecha_inicio` | `Date` | Fecha de inicio |
+| `profesor_id` | `Many2one` | Contacto principal (`res.partner`) |
+| `tema_ids` | `One2many` | Temas asociados al curso (`curso.odoo.tema`) |
+| `profesores_ids` | `Many2many` | Campo de práctica para varios contactos; agregarlo al código/vista y validar antes de considerarlo terminado |
 
-```bash
-docker logs -f odoo19
-```
+### Modelo hijo: `curso.odoo.tema`
 
-### Comprobar sintaxis Python
+Campos del ejercicio One2many:
 
-```bash
+- `name`: nombre del tema.
+- `descripcion`: descripción.
+- `orden`: orden de presentación.
+- `curso_id`: relación `Many2one` al curso padre.
+
+La relación One2many se configura en el padre con `tema_ids` y en el hijo con `curso_id`.
+
+### Archivos importantes
+
+- `models/curso.py`: modelo principal y campos.
+- `models/tema.py`: modelo de temas, si el ejercicio One2many está incorporado.
+- `models/__init__.py`: importa los archivos de modelos.
+- `views/curso_views.xml`: vistas de lista/formulario, acción, menú y pestaña de temas.
+- `security/ir.model.access.csv`: permisos de acceso a los modelos.
+- `__manifest__.py`: metadatos, dependencias y archivos que Odoo carga.
+
+## Actualizar el módulo personalizado
+
+El nombre técnico del módulo es `curso_odoo` y la base de práctica es `Odo-dev`.
+
+1. Guardar los archivos en `custom-addons/curso_odoo/`.
+2. Comprobar la sintaxis de los archivos Python desde el contenedor:
+
+```powershell
 docker exec odoo19 python3 -m py_compile /mnt/extra-addons/curso_odoo/models/curso.py
+docker exec odoo19 python3 -m py_compile /mnt/extra-addons/curso_odoo/models/tema.py
 ```
 
-### Actualizar el módulo
+El segundo comando aplica cuando existe `models/tema.py`.
 
-```bash
-docker exec odoo19 odoo -d "Odo-dev" -u curso_odoo --stop-after-init
+3. Actualizar el módulo:
+
+```powershell
+docker exec -e PGPASSWORD=odoo odoo19 odoo -d "Odo-dev" -u curso_odoo --stop-after-init
 ```
 
-Después:
+4. Volver a iniciar el servicio si quedó detenido:
 
-```bash
+```powershell
 docker compose up -d
 ```
 
----
+5. Revisar los logs si hay errores:
 
-## 🔐 Seguridad
-
-Nunca se deben subir al repositorio:
-
-```text
-.env
-.env.*
-postgres/
-*.log
-credenciales
-claves API
-contraseñas de producción
+```powershell
+docker logs odoo19 --tail 100
 ```
 
-El archivo `.gitignore` está configurado para excluir estos elementos.
+Reiniciar el contenedor por sí solo no equivale a actualizar el módulo; para que Odoo aplique cambios de modelos y XML se debe actualizar el módulo.
 
----
+## Consultas SQL de aprendizaje
 
-## 🎯 Objetivos del proyecto
+Con DBeaver o pgAdmin, conectado a la base `Odo-dev`, pueden inspeccionarse las tablas del módulo. Por ejemplo:
 
-Este repositorio será utilizado para aprender y desarrollar:
-
-* Modelos Odoo
-* Campos
-* ORM
-* Vistas XML
-* Acciones
-* Menús
-* Seguridad
-* `Many2one`
-* `One2many`
-* `Many2many`
-* Herencia de modelos
-* Herencia de vistas
-* Automatizaciones
-* Campos calculados
-* Reportes
-* JavaScript / OWL
-* Integraciones mediante API
-* Desarrollo de módulos empresariales
-* Git y GitHub
-* Despliegue en producción
-
----
-
-## 🏢 Próximos desarrollos
-
-El objetivo a largo plazo es utilizar los conocimientos adquiridos en este entorno para desarrollar funcionalidades empresariales, incluyendo:
-
-* Gestión de productos
-* Inventarios
-* Almacenes
-* Compras
-* Ventas
-* Contabilidad
-* Reportes
-* Control de ciclo de vida de productos
-* Automatizaciones empresariales
-* Integraciones con sistemas externos
-
----
-
-## 📖 Curso de desarrollo Odoo 19
-
-Este repositorio forma parte de un aprendizaje práctico de desarrollo en Odoo 19.
-
-La progresión prevista es:
-
-```text
-Clase 1  → Preparación del entorno
-Clase 2  → Arquitectura de Odoo
-Clase 3  → Primer módulo
-Clase 4  → Modelos y campos
-Clase 5  → Relaciones entre modelos
-Clase 6  → Vistas XML
-Clase 7  → Seguridad
-Clase 8  → ORM
-Clase 9  → Herencia
-Clase 10 → Automatizaciones
-Clase 11 → Reportes
-Clase 12 → OWL / JavaScript
-Clase 13 → APIs
-Clase 14 → Git y GitHub
-Clase 15 → Producción
+```sql
+SELECT id, name, edad, precio, fecha_inicio, activo, profesor_id
+FROM public.curso_odoo
+ORDER BY id;
 ```
 
----
+Para los temas, cuando el modelo hijo esté instalado:
 
-## 📌 Regla de desarrollo
-
-Los desarrollos personalizados deben realizarse mediante módulos dentro de:
-
-```text
-custom-addons/
+```sql
+SELECT id, curso_id, name, orden, descripcion
+FROM public.curso_odoo_tema
+ORDER BY curso_id, orden;
 ```
 
-No se debe modificar directamente el código fuente de Odoo.
+Se recomienda utilizar el ORM de Odoo para modificar datos de negocio. Las consultas SQL directas deben reservarse para lectura, diagnóstico y administración controlada, porque escribir directamente en tablas puede omitir lógica, validaciones y mecanismos del ORM.
 
-Esto permite mantener los desarrollos separados del núcleo de Odoo y facilita futuras actualizaciones.
+## Material visual del curso
 
----
+Las lecciones irán agregando diagramas y capturas en `docs/images/`. La siguiente imagen es una guía conceptual de la relación One2many y de dónde se muestra en el formulario del módulo:
 
-## 📄 Estado actual
+![Guía visual de One2many](docs/images/leccion-06-one2many.png)
 
-**Entorno:** Desarrollo local
-**Odoo:** 19
-**PostgreSQL:** 15
-**Docker:** Docker Compose
-**Estado:** En desarrollo
+> La imagen es ilustrativa. Los nombres de menús y la distribución exacta pueden variar según la versión, idioma y personalizaciones de Odoo. El código del repositorio es la referencia técnica.
 
----
+## Ruta de aprendizaje
 
-## 👨‍💻 Autor
+| Tema | Estado |
+|---|---|
+| Preparación del entorno Docker | ✅ Realizado |
+| Arquitectura de Odoo | ✅ Estudiado |
+| Primer módulo personalizado | ✅ Realizado |
+| Modelos y campos básicos | ✅ Realizado |
+| Relación Many2one | ✅ Probada |
+| Relación One2many | 🧪 Ejercicio en curso / validar en el repositorio local |
+| Relación Many2many | 📘 Siguiente práctica; validar antes de marcar completada |
+| Grupos y permisos avanzados | ⏳ Pendiente |
+| Record rules | ⏳ Pendiente |
+| ORM y dominios | ⏳ Pendiente |
+| Herencia de modelos y vistas | ⏳ Pendiente |
+| Campos calculados y automatizaciones | ⏳ Pendiente |
+| Reportes e integraciones | ⏳ Pendiente |
 
-**Juan Luis**
+## Buenas prácticas de Git
 
-Repositorio:
+Antes de subir cambios:
 
-**https://github.com/JuanDAvila12/odoo-dev**
+```powershell
+git status
+git diff -- README.md docker-compose.yml
+```
+
+Agregar archivos específicos y crear un commit descriptivo:
+
+```powershell
+git add README.md docker-compose.yml docs/images/
+git commit -m "Actualiza documentación y acceso local a PostgreSQL"
+git push origin main
+```
+
+Antes de usar `git add .`, revisar que `postgres/`, `.env`, respaldos y archivos sensibles estén excluidos. Nunca versionar la carpeta de datos PostgreSQL.
+
+## Objetivo del proyecto
+
+Construir una base sólida para desarrollar módulos empresariales mantenibles en Odoo 19: inventarios, compras, ventas, contabilidad, automatizaciones e integraciones, siempre mediante addons personalizados y sin modificar directamente el código fuente de Odoo.
+
+## Autor
+
+Juan Luis — <https://github.com/JuanDAvila12>
